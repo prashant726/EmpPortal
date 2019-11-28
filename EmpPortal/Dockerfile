@@ -4,17 +4,17 @@ EXPOSE 80
 EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/core/sdk:3.0-buster AS build
-WORKDIR /app
-# Copy csproj and restore as distinct layers
+WORKDIR /src
 COPY *.csproj ./
 RUN dotnet restore
+COPY . .
+WORKDIR "/src/EmpPortal"
+RUN dotnet build "EmpPortal.csproj" -c Release -o /app/build
 
-# Copy everything else and build
-COPY . ./
-RUN dotnet publish -c Release -o out
+FROM build AS publish
+RUN dotnet publish "EmpPortal.csproj" -c Release -o /app/publish
 
-# Build runtime image
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.0
+FROM base AS final
 WORKDIR /app
-COPY --from=build-env /app/out .
+COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "EmpPortal.dll"]
